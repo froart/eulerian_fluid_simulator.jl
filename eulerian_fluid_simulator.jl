@@ -105,3 +105,40 @@ end
 @inline function avgV(fluid::Fluid, j::Int64, i::Int64)
     return (fluid.v[j,i-1] + fluid.v[j,i] + fluid.v[j+1,i-1] + fluid.v[j+1,i]) * 0.25
 end
+
+function advect_velocity(fluid::Fluid, dt::Float64)
+    fluid.un, fluid.u = fluid.u, fluid.un
+    fluid.vn, fluid.v = fluid.v, fluid.vn
+
+    Δx = fluid.Δx
+    h₂ = 0.5 * Δx
+
+    for i in 1:fluid.nx, j in 1:fluid.ny
+        if fluid.o[j,i] != 0.0 && fluid.o[j,i-1] != 0.0 && j < fluid.ny
+            x = i * Δx
+            y = j * Δx + h₂
+            u = fluid.u[j,i]
+            v = avgV(fluid,j,i)
+            x = x - dt * u
+            y = y - dt * v
+            u = sample_field(fluid,x,y,"U_FIELD")
+            fluid.un[j,i] = u
+        end
+        if fluid.o[j,i] != 0.0 && fluid.o[j-1,i] != 0.0 && i < fluid.nx
+            x = i * Δx + h₂
+            y = j * Δx
+            u = avgU(fluid,j,i)
+            v = fluid.v[j,i]
+            x = x - dt * u
+            y = y - dt * v
+            v = sample_field(fluid,x,y,"V_FIELD")
+            fluid.uv[j,i] = v
+        end
+    end
+
+    fluid.u, fluid.un = fluid.un, fluid.u
+    fluid.v, fluid.vn = fluid.vn, fluid.v
+
+end
+
+
