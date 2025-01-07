@@ -64,7 +64,7 @@ function extrapolate(fluid::Fluid)
    end
 end
 
-function sample_field(fluid::Fluid, x::Float64, y::Float64, field)
+function sample_field(fluid::Fluid, x::Float64, y::Float64, field::String)
     Δx = fluid.Δx
     h₁ = 1.0 / Δx
     h₂ = 0.5 * Δx
@@ -96,4 +96,12 @@ function sample_field(fluid::Fluid, x::Float64, y::Float64, field)
         + sx * ty * f[y₁,x₀]
 
     return val 
+end
+
+@inline function avgU(fluid::Fluid, j::Int64, i::Int64)
+    return (fluid.u[j-1,i] + fluid.u[j,i] + fluid.u[j-1,i+1] + fluid.u[j,i+1]) * 0.25
+end
+
+@inline function avgV(fluid::Fluid, j::Int64, i::Int64)
+    return (fluid.v[j,i-1] + fluid.v[j,i] + fluid.v[j+1,i-1] + fluid.v[j+1,i]) * 0.25
 end
