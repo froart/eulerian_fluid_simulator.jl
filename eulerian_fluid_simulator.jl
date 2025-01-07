@@ -2,8 +2,7 @@ using GLMakie
 
 mutable struct Fluid
     ρ::Float64 # density
-    Δx::Float64
-    Δt::Float64
+    dl::Float64
     nx::Int64 # number of cells by x
     ny::Int64 # number of cells by y
     u::Array{Float64, 2} # velocity field by x
@@ -13,20 +12,20 @@ mutable struct Fluid
     p::Array{Float64, 2} # static pressure field
     o::Array{Float64, 2} # solid occupancy field
 
-    function Fluid(ρ::Float64, Δx::Float64, Δt::Float64, nx::Int64, ny::Int64)
+    function Fluid(ρ::Float64, dl::Float64, nx::Int64, ny::Int64)
         u  = zeros(Float64, nx, ny)
         un = zeros(Float64, nx, ny)
         v  = zeros(Float64, nx, ny)
         vn = zeros(Float64, nx, ny)
         p  = zeros(Float64, nx, ny)
         o  = zeros(Float64, nx, ny)
-        return new(ρ, Δx, Δt, nx, ny, u, un, v, vn, p, o)
+        return new(ρ, dl, nx, ny, u, un, v, vn, p, o)
     end
 end
 
-function solveIncompressibility(fluid::Fluid, numIters::Int64, Δt::Float64)
+function solveIncompressibility(fluid::Fluid, numIters::Int64, dt::Float64)
      n = fluid.ny
-     cp = fluid.ρ * fluid.Δx / Δt 
+     cp = fluid.ρ * fluid.dl / dt 
      nx = fluid.nx
      ny = fluid.ny
 
@@ -65,12 +64,12 @@ function extrapolate(fluid::Fluid)
 end
 
 function sample_field(fluid::Fluid, x::Float64, y::Float64, field::String)
-    Δx = fluid.Δx
-    h₁ = 1.0 / Δx
-    h₂ = 0.5 * Δx
+    dl = fluid.dl
+    h₁ = 1.0 / dl 
+    h₂ = 0.5 * dl 
 
-    x = max(min(x, fluid.nx * Δx), Δx)
-    y = max(min(y, fluid.ny * Δx), Δx)
+    x = max(min(x, fluid.nx * dl), dl)
+    y = max(min(y, fluid.ny * dl), dl)
 
     dx = 0.0
     dy = 0.0
@@ -80,11 +79,11 @@ function sample_field(fluid::Fluid, x::Float64, y::Float64, field::String)
     field == "V_FIELD" ? (f = fluid.v; dx = h₂) : nothing
 
     x₀ = min(floor((x - dx) * h₁), fluid.nx)
-    tx = ((x - dx) - x₀ * Δx) * h₁
+    tx = ((x - dx) - x₀ * dl) * h₁
     x₁ = min(x₀ + 1, fluid.nx)
 
     y₀ = min(floor((y - dy) * h₁), fluid.ny)
-    tx = ((y - dy) - y₀ * Δx) * h₁
+    tx = ((y - dy) - y₀ * dl) * h₁
     y₁ = min(y₀ + 1, fluid.ny)
 
     sx = 1.0 - tx
@@ -110,13 +109,13 @@ function advect_velocity(fluid::Fluid, dt::Float64)
     fluid.un, fluid.u = fluid.u, fluid.un
     fluid.vn, fluid.v = fluid.v, fluid.vn
 
-    Δx = fluid.Δx
-    h₂ = 0.5 * Δx
+    dl = fluid.dl
+    h₂ = 0.5 * dl 
 
     for i in 1:fluid.nx, j in 1:fluid.ny
         if fluid.o[j,i] != 0.0 && fluid.o[j,i-1] != 0.0 && j < fluid.ny
-            x = i * Δx
-            y = j * Δx + h₂
+            x = i * dl 
+            y = j * dl + h₂
             u = fluid.u[j,i]
             v = avgV(fluid,j,i)
             x = x - dt * u
@@ -125,8 +124,8 @@ function advect_velocity(fluid::Fluid, dt::Float64)
             fluid.un[j,i] = u
         end
         if fluid.o[j,i] != 0.0 && fluid.o[j-1,i] != 0.0 && i < fluid.nx
-            x = i * Δx + h₂
-            y = j * Δx
+            x = i * dl + h₂
+            y = j * dl 
             u = avgU(fluid,j,i)
             v = fluid.v[j,i]
             x = x - dt * u
@@ -141,4 +140,9 @@ function advect_velocity(fluid::Fluid, dt::Float64)
 
 end
 
-
+function simulate(fluid::Fluid, dt::Float64, numIters::Int64)
+    fill!(fluid.p, 0.0)
+    solveIncompressibility(fluid, numIters, dt)
+    extrapolate(fluid)
+    advect_velocity(fluid, dt)
+end
