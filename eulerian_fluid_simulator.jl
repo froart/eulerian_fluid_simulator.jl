@@ -61,5 +61,39 @@ function extrapolate(fluid::Fluid)
    for j in 1:fluid.ny
        fluid.v[j,0] = fluid.v[j,1]
        fluid.v[j,fluid.nx] = fluid.v[j,fluid.ny-1]
-   end 
+   end
+end
+
+function sample_field(fluid::Fluid, x::Float64, y::Float64, field)
+    Δx = fluid.Δx
+    h₁ = 1.0 / Δx
+    h₂ = 0.5 * Δx
+
+    x = max(min(x, fluid.nx * Δx), Δx)
+    y = max(min(y, fluid.ny * Δx), Δx)
+
+    dx = 0.0
+    dy = 0.0
+
+    f
+    field == "U_FIELD" ? (f = fluid.u; dy = h₂) : 
+    field == "V_FIELD" ? (f = fluid.v; dx = h₂) : nothing
+
+    x₀ = min(floor((x - dx) * h₁), fluid.nx)
+    tx = ((x - dx) - x₀ * Δx) * h₁
+    x₁ = min(x₀ + 1, fluid.nx)
+
+    y₀ = min(floor((y - dy) * h₁), fluid.ny)
+    tx = ((y - dy) - y₀ * Δx) * h₁
+    y₁ = min(y₀ + 1, fluid.ny)
+
+    sx = 1.0 - tx
+    sy = 1.0 - ty
+
+    val = sx * sy * f[y₀,x₀]
+        + tx * sy * f[y₀,x₁]
+        + tx * ty * f[y₁,x₁]
+        + sx * ty * f[y₁,x₀]
+
+    return val 
 end
