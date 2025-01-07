@@ -32,23 +32,24 @@ function solveIncompressibility(fluid::Fluid, numIters::Int64, Δt::Float64)
 
      for k in 1:numIters
         for i in 1:fluid.nx, j in 1:fluid.ny
-            fluid.o[i,j] == 0.0 && continue
-            ox0 = fluid.o[i-1,j]
-            ox1 = fluid.o[i+1,j]
-            oy0 = fluid.o[i,j-1]
-            ox1 = fluid.o[i,j+1]
+            fluid.o[j,i] == 0.0 && continue
+            ox0 = fluid.o[j,i-1]
+            ox1 = fluid.o[j,i+1]
+            oy0 = fluid.o[j-1,i]
+            ox1 = fluid.o[j+1,i]
             o   = ox0 + ox1 + oy0 + oy1
             o == 0.0 && continue
 
-            div = fluid.u[i+1, j] - fluid.u[i,j] + fluid.v[i,j+1] - fluid.v[i,j]
+            div = fluid.u[j,i+1] - fluid.u[j,i] + fluid.v[j+1,i] - fluid.v[j,i]
             p = -div / o
             p *= 1.9 # over-relaxation
-            fluid.p[i,j] += cp * p
+            fluid.p[j,i] += cp * p
 
-            fluid.u[i,j]   -= ox0 * p
-            fluid.u[i+1,j] += ox1 * p
-            fluid.v[i,j]   -= oy0 * p
-            fluid.v[i,j+1] += oy1 * p
+            fluid.u[j,i]   -= ox0 * p
+            fluid.u[j,i+1] += ox1 * p
+            fluid.v[j,i]   -= oy0 * p
+            fluid.v[j+1,i] += oy1 * p
         end
     end
 end
+
