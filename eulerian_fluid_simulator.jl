@@ -53,3 +53,13 @@ function solveIncompressibility(fluid::Fluid, numIters::Int64, Δt::Float64)
     end
 end
 
+function extrapolate(fluid::Fluid)
+   for i in 1:fluid.nx
+       fluid.u[0,i] = fluid.u[1,i]
+       fluid.u[fluid.ny,i] = fluid.u[fluid.ny-1,i]
+   end 
+   for j in 1:fluid.ny
+       fluid.v[j,0] = fluid.v[j,1]
+       fluid.v[j,fluid.nx] = fluid.v[j,fluid.ny-1]
+   end 
+end
