@@ -112,11 +112,8 @@ end
 end
 
 function advect_velocity(fluid::Fluid, dt::Float64)
-#    fluid.un, fluid.u = fluid.u, fluid.un
-#    fluid.vn, fluid.v = fluid.v, fluid.vn
-    temp     = copy(fluid.un)
-    fluid.un = copy(fluid.u)
-    fluid.u  = copy(temp)
+    fluid.un, fluid.u = fluid.u, fluid.un
+    fluid.vn, fluid.v = fluid.v, fluid.vn
 
     dl = fluid.dl
     h₂ = 0.5 * dl 
@@ -144,12 +141,9 @@ function advect_velocity(fluid::Fluid, dt::Float64)
         end
     end
 
-   #fluid.u, fluid.un = fluid.un, fluid.u
-   #fluid.v, fluid.vn = fluid.vn, fluid.v
+    fluid.u, fluid.un = fluid.un, fluid.u
+    fluid.v, fluid.vn = fluid.vn, fluid.v
 
-    temp     = copy(fluid.u)
-    fluid.u  = copy(fluid.un)
-    fluid.un = copy(temp)
 end
 
 function simulate(fluid::Fluid, dt::Float64, numIters::Int64)
@@ -171,18 +165,13 @@ axis_height     = 20.0
 ρ = 1000.0; dl = 0.001; nx = 100; ny = 100
 
 fluid = Fluid(ρ, dl, nx, ny)
- 
+data = Observable(similar(fluid.p))
+fill!(data[], 0.0)
+
 set_theme!(theme_dark())
 fig = Figure(size = (to_pixels(window_width), to_pixels(window_height)))
-ax  = Axis(fig[1,1][1,1], 
-            title = "Pressure field", 
-            aspect = 1) 
-            #width = to_pixels(axis_width), 
-            #height = to_pixels(axis_height))
-            #perspectiveness = 1.0)
-data = Observable(similar(fluid.p))
-#volume!(ax, data, colorrange = (0.0, 10.0), algorithm = :absorption, absorption = 0.1)
-heatmap!(ax, data)
+ax  = Axis(fig[1,1][1,1], title = "Pressure field", aspect = 1) 
+heatmap!(ax, data, colormap = :viridis, colorrange = (-10.0, 10.0))
 display(fig)
 
 # Configuring UI
@@ -194,13 +183,16 @@ on(events(fig).keyboardbutton) do event
 end
 
 fps = 60
-fluid.u[Int(nx/2),Int(ny/2)] = 1.0
+
+# initial speeds
+fluid.u[Int(ny/2),Int(nx/2)] = -10.0
+fluid.v[Int(nx/2),Int(ny/2)] = -10.0
 
 println("The simulation is running...")
 while !quit[]
     # run simulation and update figure data
-    simulate(fluid, 0.01, 5)
-    data[] = copy(fluid.p)
+    simulate(fluid, 0.1, 5)
+    data[] = copy(fluid.p')
     notify(data)
     sleep(1/fps)
     display(fig)
